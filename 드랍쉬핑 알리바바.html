@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알리바바 드랍쉬핑 물류 흐름도 (KR/JP 분리)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: {
+            primaryColor: '#f1f5f9',
+            primaryBorderColor: '#cbd5e1',
+            lineColor: '#94a3b8',
+            fontFamily: 'Pretendard'
+        }});
+    </script>
+
+    <style>
+        :root {
+            --primary: #0284c7;       /* FB Blue */
+            --primary-dark: #0f172a;  /* Navy */
+            --accent: #f59e0b;        /* Alibaba Orange */
+            --danger: #ef4444;        /* Japan Red */
+            --success: #10b981;       /* FB Green */
+            --bg-gray: #f8fafc;
+            --text-main: #334155;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #e2e8f0;
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, #1e3a8a 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .badge {
+            background-color: var(--accent);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        header h1 { font-size: 28px; font-weight: 800; margin: 0 0 10px 0; }
+        header p { font-size: 15px; opacity: 0.9; margin: 0; }
+
+        /* Content */
+        section { padding: 40px; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 20px; font-weight: 700; color: var(--primary-dark); margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+
+        /* Diagram Box */
+        .diagram-box {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .info-card {
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .info-card h3 { margin: 0 0 15px 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .info-card p { font-size: 14px; margin: 0; color: #475569; word-break: keep-all; }
+        
+        .c-orange { color: var(--accent); }
+        .c-green { color: var(--success); }
+        .c-red { color: var(--danger); }
+
+        footer { background-color: var(--bg-gray); padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+
+        @media (max-width: 768px) {
+            .info-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <span class="badge">Architecture Update</span>
+        <h1>알리바바 드랍쉬핑 모델 (FB 중국 허브 기반)</h1>
+        <p>구매자 위치(한국 vs 일본)에 따른 배송 분기 및 합포장 프로세스 구조도</p>
+    </header>
+
+    <section>
+        <h2><i class="fa-solid fa-sitemap" style="color:var(--primary);"></i> 시스템 및 물류 흐름도</h2>
+        <div class="diagram-box">
+            <div class="mermaid">
+graph TD
+    %% 노드 스타일 정의
+    classDef alibaba fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
+    classDef fbHub fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
+    classDef seller fill:#e3f2fd,stroke:#2196f3,stroke-width:2px;
+    classDef buyerKR fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px;
+    classDef buyerJP fill:#ffebee,stroke:#f44336,stroke-width:2px;
+    classDef sys fill:#f1f5f9,stroke:#94a3b8,stroke-dasharray: 5 5;
+
+    subgraph SYSTEM [💻 시스템/주문 동기화]
+        AliAPI(알리바바 API) <--> |1. 상품/가격 연동| FB_Sys(페스트박스 EC 시스템)
+        FB_Sys <--> |2. 상품 리스팅 & 발주| Seller(한국 판매자 쇼핑몰)
+    end
+
+    subgraph CHINA [🇨🇳 중국: 소싱 및 합포장]
+        Supplier[알리바바 공급사 A, B, C] --> |3. 현지 내륙 배송| FB_CN_Hub{🏭 FB 중국 현지 허브<br/>위해/옌타이 등}
+        FB_CN_Hub --> |4. 입고/검수/One-Box 합포장| FB_CN_Hub
+    end
+
+    subgraph DELIVERY [🚚 국가별 크로스보더 직배송 분기]
+        FB_CN_Hub --> |5A. 한국행 항공/해운 발송| KR_Customs(한국 세관 통관)
+        FB_CN_Hub --> |5B. 일본행 항공/해운 발송| JP_Customs(일본 세관 통관)
+
+        KR_Customs --> |6A. 국내 택배 인계| BuyerKR((🇰🇷 한국 구매자))
+        JP_Customs --> |6B. 일본 택배 인계| BuyerJP((🇯🇵 일본 구매자))
+    end
+
+    %% 주문 흐름 (점선)
+    BuyerKR -.-> |주문/결제| Seller
+    BuyerJP -.-> |주문/결제| Seller
+    FB_Sys -.-> |자동 발주 지시| Supplier
+
+    %% 스타일 적용
+    class Supplier,AliAPI alibaba;
+    class FB_CN_Hub fbHub;
+    class Seller seller;
+    class BuyerKR buyerKR;
+    class BuyerJP buyerJP;
+    class FB_Sys sys;
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2><i class="fa-solid fa-list-check" style="color:var(--primary);"></i> 핵심 점검 지점 및 운영 방안</h2>
+        <div class="info-grid">
+            <div class="info-card" style="border-top: 3px solid var(--accent);">
+                <h3 class="c-orange"><i class="fa-solid fa-cart-arrow-down"></i> 1. 발주 및 배송 주체 통일</h3>
+                <p>알리바바 공급사가 최종 구매자에게 <strong>개별 직배송하는 것을 전면 차단</strong>해야 합니다. 공급사는 오직 'FB 중국 허브'까지만 배송하며, 이후 한국이든 일본이든 <strong>FB가 합포장(One-Box) 후 크로스보더 직배송을 통제</strong>하는 것이 수익과 품질을 지키는 핵심입니다.</p>
+            </div>
+            
+            <div class="info-card" style="border-top: 3px solid var(--success);">
+                <h3 class="c-green"><i class="fa-solid fa-plane"></i> 2. 구매자별 물류 라인 (KR/JP)</h3>
+                <p>한국 FB 허브(인천)를 거칠 경우 배송비가 두 번 부과되므로 적자가 납니다. 따라서 주문이 들어오면 중국 현지 허브에서 분기하여 <strong>중국 ➜ 한국(K2K)</strong> 라인과 <strong>중국 ➜ 일본(K2G)</strong> 라인으로 즉시 쏘아주는 '이원화 직배송' 구조가 필수입니다.</p>
+            </div>
+
+            <div class="info-card" style="border-top: 3px solid var(--danger);">
+                <h3 class="c-red"><i class="fa-solid fa-scale-balanced"></i> 3. 별도 운영 정책 (반품/CS)</h3>
+                <p>K-브랜드와 알리바바 공산품은 불량률과 객단가가 다릅니다. K-브랜드의 관대한 환불 정책을 알리바바 상품에 똑같이 적용하면 CS 비용을 감당할 수 없습니다. 알리바바 소싱 건은 <strong>"단순 변심 반품 불가" 또는 "불량 시 사진 첨부 확인 후 현지 폐기(부분 환불)"</strong> 등 보수적인 전용 정책을 세팅해야 합니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>CAFE24 CORP. & FB LOGISTICS | ALIBABA DROPSHIPPING ARCHITECTURE UPDATE</p>
+    </footer>
+</div>
+
+</body>
+</html>
